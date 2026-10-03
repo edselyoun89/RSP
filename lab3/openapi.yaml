@@ -1,0 +1,81 @@
+openapi: 3.0.3
+info:
+  title: Library API — Health Check
+  version: 1.0.0
+  description: Минимальный контракт каркаса серверного приложения ЛР3.
+  license:
+    name: Educational use
+    url: https://opensource.org/license/mit
+servers:
+  - url: http://127.0.0.1:8080
+    description: Локальный сервер разработки
+paths:
+  /health:
+    get:
+      security: []
+      operationId: getHealth
+      summary: Проверка работоспособности сервиса
+      responses:
+        '200':
+          description: Сервис работает
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+        '503':
+          description: Сервис временно недоступен
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '400':
+          description: Некорректный запрос
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/health:
+    get:
+      security: []
+      operationId: getVersionedHealth
+      summary: Версионированная проверка работоспособности
+      responses:
+        '200':
+          description: Сервис работает
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+        '503':
+          description: Сервис временно недоступен
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '400':
+          description: Некорректный запрос
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+components:
+  schemas:
+    HealthResponse:
+      type: object
+      required: [status, app_name, version, environment]
+      properties:
+        status:
+          type: string
+          enum: [pass]
+        app_name:
+          type: string
+        version:
+          type: string
+        environment:
+          type: string
+    ErrorResponse:
+      type: object
+      required: [code, message]
+      properties:
+        code: { type: string }
+        message: { type: string }
