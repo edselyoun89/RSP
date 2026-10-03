@@ -37,11 +37,11 @@ git push origin main
 
 ## GitHub
 
-Локальный репозиторий находится в этой папке. Перед первой отправкой создай пустой репозиторий на GitHub и выполни:
+Репозиторий опубликован на GitHub: [github.com/edselyoun89/RSP](https://github.com/edselyoun89/RSP). Локальная папка уже подключена к нему как `origin`.
 
 ```powershell
-git remote add origin https://github.com/<username>/<repository>.git
+git remote -v
 git push -u origin main
 ```
 
-URL оставлен шаблоном, потому что конкретный GitHub-репозиторий ещё не указан.
+Для следующих лабораторных используйте ветки от актуального `main`, затем отправляйте их через `git push -u origin <branch>`.
