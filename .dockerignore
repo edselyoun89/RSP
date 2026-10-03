@@ -1,0 +1,40 @@
+# Git and repository metadata
+.git
+.gitignore
+.github
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+
+# Development-only laboratory materials
+lab1/
+lab2/
+lab4/
+lab3/tests/
+lab3/image*.png
+
+# Python caches and local environments
+**/__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+dist/
+build/
+*.egg-info/
+
+# IDE and OS files
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
