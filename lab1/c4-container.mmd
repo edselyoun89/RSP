@@ -1,0 +1,12 @@
+flowchart LR
+    reader[Читатель\nWeb / Mobile]
+    librarian[Библиотекарь\nStaff UI]
+    api[Library REST API\nAuth + Catalog + Circulation]
+    db[(PostgreSQL)]
+    notifications[Email / Notification Provider]
+    scheduler[Background Scheduler]
+    reader -->|HTTPS, JWT| api
+    librarian -->|HTTPS, JWT| api
+    api -->|SQL transaction| db
+    scheduler -->|expiry checks| db
+    api -->|reservation and fine events| notifications

@@ -1,0 +1,73 @@
+erDiagram
+    USERS ||--o{ RESERVATIONS : creates
+    USERS ||--o{ LOANS : receives
+    USERS ||--o{ FINES : owes
+    BOOKS ||--o{ BOOK_COPIES : has
+    BOOKS ||--o{ BOOK_AUTHORS : linked
+    AUTHORS ||--o{ BOOK_AUTHORS : writes
+    BOOKS ||--o{ BOOK_GENRES : classified
+    GENRES ||--o{ BOOK_GENRES : contains
+    BOOK_COPIES ||--o{ RESERVATIONS : reserved
+    BOOK_COPIES ||--o{ LOANS : loaned
+    LOANS ||--o| FINES : may_create
+
+    USERS {
+        uuid id PK
+        varchar full_name
+        varchar email UK
+        varchar password_hash
+        user_role role
+        user_status status
+        timestamptz created_at
+    }
+    BOOKS {
+        uuid id PK
+        varchar isbn UK
+        varchar title
+        smallint publication_year
+        text description
+    }
+    AUTHORS {
+        uuid id PK
+        varchar full_name UK
+    }
+    GENRES {
+        uuid id PK
+        varchar name UK
+    }
+    BOOK_COPIES {
+        uuid id PK
+        uuid book_id FK
+        varchar inventory_code UK
+        copy_status status
+    }
+    RESERVATIONS {
+        uuid id PK
+        uuid reader_id FK
+        uuid copy_id FK
+        reservation_status status
+        timestamptz expires_at
+    }
+    LOANS {
+        uuid id PK
+        uuid reader_id FK
+        uuid copy_id FK
+        timestamptz issued_at
+        timestamptz due_at
+        timestamptz returned_at
+    }
+    FINES {
+        uuid id PK
+        uuid reader_id FK
+        uuid loan_id FK
+        numeric amount
+        fine_status status
+    }
+    BOOK_AUTHORS {
+        uuid book_id FK
+        uuid author_id FK
+    }
+    BOOK_GENRES {
+        uuid book_id FK
+        uuid genre_id FK
+    }
