@@ -1,0 +1,398 @@
+openapi: 3.0.3
+info:
+  title: Library REST API
+  version: 1.0.0
+  description: REST API электронной библиотеки и каталога книг. Лабораторная работа №2, вариант 18.
+  license:
+    name: Educational use
+    url: https://opensource.org/license/mit
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Локальный сервер разработки
+tags:
+  - name: Auth
+    description: Регистрация и аутентификация
+  - name: Books
+    description: Каталог книг и поиск
+  - name: Reservations
+    description: Бронирование экземпляров
+  - name: Loans
+    description: Выдача и возврат книг
+  - name: Fines
+    description: Штрафы за просрочку
+  - name: System
+    description: Служебные endpoints
+security:
+  - bearerAuth: []
+paths:
+  /health:
+    get:
+      security: []
+      tags: [System]
+      operationId: getHealth
+      summary: Проверка доступности сервиса
+      responses:
+        '200':
+          description: Сервис работает
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/HealthResponse' }
+        '503':
+          description: Зависимость сервиса недоступна
+          content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+        '400': { $ref: '#/components/responses/BadRequest' }
+  /auth/register:
+    post:
+      security: []
+      tags: [Auth]
+      operationId: registerReader
+      summary: Регистрация читателя
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RegisterRequest' }
+      responses:
+        '201':
+          description: Пользователь создан
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UserResponse' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /auth/login:
+    post:
+      security: []
+      tags: [Auth]
+      operationId: login
+      summary: Вход и получение JWT
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LoginRequest' }
+      responses:
+        '200':
+          description: Токен выдан
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TokenResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /books:
+    get:
+      security: []
+      tags: [Books]
+      operationId: listBooks
+      summary: Поиск и список книг
+      parameters:
+        - { $ref: '#/components/parameters/Page' }
+        - { $ref: '#/components/parameters/PageSize' }
+        - name: q
+          in: query
+          description: Поиск по названию, ISBN или автору
+          schema: { type: string, maxLength: 120 }
+        - name: genre
+          in: query
+          schema: { type: string, maxLength: 80 }
+        - name: available
+          in: query
+          schema: { type: boolean, default: false }
+      responses:
+        '200':
+          description: Страница каталога
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/BookPage' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+    post:
+      tags: [Books]
+      operationId: createBook
+      summary: Добавить книгу и экземпляр
+      description: Только для библиотекаря.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateBookRequest' }
+      responses:
+        '201':
+          description: Книга создана
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/BookResponse' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /books/{bookId}:
+    get:
+      security: []
+      tags: [Books]
+      operationId: getBook
+      summary: Карточка книги
+      parameters:
+        - { $ref: '#/components/parameters/BookId' }
+      responses:
+        '200':
+          description: Книга найдена
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/BookResponse' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /reservations:
+    post:
+      tags: [Reservations]
+      operationId: createReservation
+      summary: Забронировать экземпляр
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateReservationRequest' }
+      responses:
+        '201':
+          description: Бронь создана на 48 часов
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ReservationResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /me/reservations:
+    get:
+      tags: [Reservations]
+      operationId: listMyReservations
+      summary: Брони текущего читателя
+      responses:
+        '200':
+          description: Список броней
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/ReservationResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /reservations/{reservationId}:
+    delete:
+      tags: [Reservations]
+      operationId: cancelReservation
+      summary: Отменить бронь
+      parameters:
+        - { $ref: '#/components/parameters/ReservationId' }
+      responses:
+        '204': { description: Бронь отменена }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /loans:
+    post:
+      tags: [Loans]
+      operationId: createLoan
+      summary: Выдать книгу по брони
+      description: Только для библиотекаря. Срок выдачи — 30 дней.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateLoanRequest' }
+      responses:
+        '201':
+          description: Выдача оформлена
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LoanResponse' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /me/loans:
+    get:
+      tags: [Loans]
+      operationId: listMyLoans
+      summary: Выдачи текущего читателя
+      responses:
+        '200':
+          description: История выдач
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/LoanResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /loans/{loanId}/return:
+    post:
+      tags: [Loans]
+      operationId: returnLoan
+      summary: Принять возврат книги
+      parameters:
+        - { $ref: '#/components/parameters/LoanId' }
+      responses:
+        '200':
+          description: Возврат оформлен
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LoanResponse' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /fines:
+    get:
+      tags: [Fines]
+      operationId: listFines
+      summary: Просмотреть штрафы
+      description: Только для библиотекаря.
+      parameters:
+        - name: status
+          in: query
+          schema: { type: string, enum: [unpaid, paid, waived] }
+      responses:
+        '200':
+          description: Список штрафов
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/FineResponse' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    Page: { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+    PageSize: { name: pageSize, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
+    BookId: { name: bookId, in: path, required: true, schema: { type: string, format: uuid } }
+    ReservationId: { name: reservationId, in: path, required: true, schema: { type: string, format: uuid } }
+    LoanId: { name: loanId, in: path, required: true, schema: { type: string, format: uuid } }
+  responses:
+    BadRequest:
+      description: Ошибка валидации запроса
+      content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+    Unauthorized:
+      description: Требуется аутентификация
+      content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+    Forbidden:
+      description: Недостаточно прав
+      content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+    NotFound:
+      description: Ресурс не найден
+      content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+    Conflict:
+      description: Конфликт состояния ресурса
+      content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+  schemas:
+    RegisterRequest:
+      type: object
+      required: [fullName, email, password]
+      properties:
+        fullName: { type: string, minLength: 2, maxLength: 160, example: Анна Петрова }
+        email: { type: string, format: email, example: reader@example.com }
+        password: { type: string, format: password, minLength: 8, example: StrongPass123! }
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string, format: password }
+    TokenResponse:
+      type: object
+      required: [accessToken, tokenType, expiresIn]
+      properties:
+        accessToken: { type: string, example: eyJhbGciOiJIUzI1NiJ9... }
+        tokenType: { type: string, enum: [Bearer] }
+        expiresIn: { type: integer, description: Срок жизни токена в секундах, example: 3600 }
+    UserResponse:
+      type: object
+      required: [id, fullName, email, role, status]
+      properties:
+        id: { type: string, format: uuid }
+        fullName: { type: string }
+        email: { type: string, format: email }
+        role: { type: string, enum: [reader, librarian] }
+        status: { type: string, enum: [active, blocked] }
+    CreateBookRequest:
+      type: object
+      required: [isbn, title, authorIds, genreIds, inventoryCode]
+      properties:
+        isbn: { type: string, pattern: '^(97(8|9))?[- ]?[0-9][- 0-9]{8,15}$', example: 978-5-17-123456-7 }
+        title: { type: string, minLength: 1, maxLength: 300, example: Мастер и Маргарита }
+        publicationYear: { type: integer, minimum: 1450, maximum: 2100, example: 1967 }
+        description: { type: string }
+        authorIds: { type: array, minItems: 1, items: { type: string, format: uuid } }
+        genreIds: { type: array, minItems: 1, items: { type: string, format: uuid } }
+        inventoryCode: { type: string, minLength: 1, maxLength: 32, example: LIB-000184 }
+    BookResponse:
+      type: object
+      required: [id, isbn, title, authors, genres, availableCopies, totalCopies]
+      properties:
+        id: { type: string, format: uuid }
+        isbn: { type: string }
+        title: { type: string }
+        publicationYear: { type: integer, nullable: true }
+        description: { type: string, nullable: true }
+        authors: { type: array, items: { type: string } }
+        genres: { type: array, items: { type: string } }
+        availableCopies: { type: integer, minimum: 0 }
+        totalCopies: { type: integer, minimum: 0 }
+    BookPage:
+      type: object
+      required: [items, page, pageSize, total]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/BookResponse' } }
+        page: { type: integer }
+        pageSize: { type: integer }
+        total: { type: integer }
+    CreateReservationRequest:
+      type: object
+      required: [copyId]
+      properties:
+        copyId: { type: string, format: uuid }
+    ReservationResponse:
+      type: object
+      required: [id, copyId, status, createdAt, expiresAt]
+      properties:
+        id: { type: string, format: uuid }
+        copyId: { type: string, format: uuid }
+        status: { type: string, enum: [active, fulfilled, cancelled, expired] }
+        createdAt: { type: string, format: date-time }
+        expiresAt: { type: string, format: date-time }
+    CreateLoanRequest:
+      type: object
+      required: [copyId, readerId]
+      properties:
+        copyId: { type: string, format: uuid }
+        readerId: { type: string, format: uuid }
+        reservationId: { type: string, format: uuid, nullable: true }
+    LoanResponse:
+      type: object
+      required: [id, copyId, readerId, issuedAt, dueAt, status]
+      properties:
+        id: { type: string, format: uuid }
+        copyId: { type: string, format: uuid }
+        readerId: { type: string, format: uuid }
+        issuedAt: { type: string, format: date-time }
+        dueAt: { type: string, format: date-time }
+        returnedAt: { type: string, format: date-time, nullable: true }
+        status: { type: string, enum: [active, returned, overdue] }
+        fineAmount: { type: number, format: double, minimum: 0, nullable: true }
+    FineResponse:
+      type: object
+      required: [id, readerId, loanId, amount, status, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        readerId: { type: string, format: uuid }
+        loanId: { type: string, format: uuid }
+        amount: { type: number, format: double, minimum: 0, example: 150.00 }
+        status: { type: string, enum: [unpaid, paid, waived] }
+        createdAt: { type: string, format: date-time }
+        paidAt: { type: string, format: date-time, nullable: true }
+    HealthResponse:
+      type: object
+      required: [status, appName, version, environment]
+      properties:
+        status: { type: string, enum: [pass], example: pass }
+        appName: { type: string, example: Library API }
+        version: { type: string, example: 1.0.0 }
+        environment: { type: string, example: development }
+    ErrorResponse:
+      type: object
+      required: [code, message, timestamp]
+      properties:
+        code: { type: string, example: BOOK_COPY_UNAVAILABLE }
+        message: { type: string, example: Выбранный экземпляр уже забронирован }
+        timestamp: { type: string, format: date-time }
